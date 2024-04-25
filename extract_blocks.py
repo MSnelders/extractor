@@ -45,51 +45,51 @@ for file in flist:                              # .raw files starting with argv 
         
         nHeadLine = 0
         for i in range(max_header_lines):
-            currline = f.read(bytes_per_line)           
-            nHeadLine += 1 # increase nHeadLine counter
-            
-            # escape when end of header has been found
-            if currline.startswith('END'):
-                    break
+                currline = f.read(bytes_per_line)           
+                nHeadLine += 1 # increase nHeadLine counter
                 
-            # the header end should be reached before max_header_lines
-            if nHeadLine == max_header_lines - 1:
-                    sys.exit("""End of header not found within the first 300 lines.
-                             Are you sure you the files are correct and 
-                             you are calling this function with Python 2?""")
-            
-            subline = currline[value_start_idx:] # remove keyword from string
-            subline = subline.replace('"', '').replace("'", "").replace(' ', '') # clean string
-            
-            if ('BLOCSIZE' in subline):
-                    nBlocsize = int(subline) # convert string to integer
+                # escape when end of header has been found
+                if currline.startswith('END'):
+                        break
                     
-            if ('DIRECTIO' in subline):
-                    directio = int(subline) # convert string to integer
-                    
-            if ('CHAN_BW ' in subline):
-                    dchanbw = float(subline) # convert string to float
+                # the header end should be reached before max_header_lines
+                if nHeadLine == max_header_lines - 1:
+                        sys.exit("""End of header not found within the first 300 lines.
+                                 Are you sure you the files are correct and 
+                                 you are calling this function with Python 2?""")
+                
+                subline = currline[value_start_idx:] # remove keyword from string
+                subline = subline.replace('"', '').replace("'", "").replace(' ', '') # clean string
+                
+                if ('BLOCSIZE' in subline):
+                        nBlocsize = int(subline) # convert string to integer
+                        
+                if ('DIRECTIO' in subline):
+                        directio = int(subline) # convert string to integer
+                        
+                if ('CHAN_BW ' in subline):
+                        dchanbw = float(subline) # convert string to float
         
-            # the header consists of N lines, each bytes_per_line long, and the last line should be "END" followed by 77 spaces.
-            nHeaderSize = nHeadLine * bytes_per_line
-            
-            # if directio is enabled, padding the header is (likely) required to
-            # make nHeaderSize % direct_io_size == 0
-            if directio == 1:
-                    nHeaderSize = direct_io_size * np.ceil( (nHeadLine * bytes_per_line) / direct_io_size )
+        # the header consists of N lines, each bytes_per_line long, and the last line should be "END" followed by 77 spaces.
+        nHeaderSize = nHeadLine * bytes_per_line
+        
+        # if directio is enabled, padding the header is (likely) required to
+        # make nHeaderSize % direct_io_size == 0
+        if directio == 1:
+                nHeaderSize = direct_io_size * np.ceil( (nHeadLine * bytes_per_line) / direct_io_size )
           
-            f.close()
-            
-            assert nHeaderSize == int(nHeaderSize)
-            nHeaderSize = int(nHeaderSize)
-            
-            nBlocs = float(os.path.getsize(file)) / float(nHeaderSize + nBlocsize)
-            assert nBlocs == int(nBlocs)
-            nBlocs = int(nBlocs)
-            
-            nTotalBlocs = nTotalBlocs + nBlocs      # total number of blocks
-            nListBlocs.append(nBlocs)               # lists number of blocks per file
-            nListBlocsCumul.append(nTotalBlocs)     # lists number of cumulative blocks
+        f.close()
+        
+        assert nHeaderSize == int(nHeaderSize)
+        nHeaderSize = int(nHeaderSize)
+        
+        nBlocs = float(os.path.getsize(file)) / float(nHeaderSize + nBlocsize)
+        assert nBlocs == int(nBlocs)
+        nBlocs = int(nBlocs)
+        
+        nTotalBlocs = nTotalBlocs + nBlocs      # total number of blocks
+        nListBlocs.append(nBlocs)               # lists number of blocks per file
+        nListBlocsCumul.append(nTotalBlocs)     # lists number of cumulative blocks
 
 # print "# of blocs = ",nTotalBlocs
 # print "total duration = ",nTotalBlocs*nBlocsize/64./4./abs(dchanbw)/1e6," seconds"
