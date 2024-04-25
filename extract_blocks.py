@@ -58,7 +58,7 @@ for file in flist:                              # .raw files starting with argv 
                 nHeaderSize = nHeadLine*80      # size of header
         f.close()
 
-        nBlocs = numpy.ceil(os.path.getsize(file)/(nHeaderSize + nBlocsize))    # number of blocks in current file
+        nBlocs = np.ceil(os.path.getsize(file)/(nHeaderSize + nBlocsize))    # number of blocks in current file
         nTotalBlocs = nTotalBlocs + nBlocs      # total number of blocks
         nListBlocs.append(nBlocs)                       # lists number of blocks per file
         nListBlocsCumul.append(nTotalBlocs)     # lists number of cumulative blocks
@@ -108,26 +108,24 @@ nf = open(newfilename,'wb')     # open as [b]inary and to [w]rite
 for filenum in range(StartFile,StopFile+1):
         f = open(flist[filenum],'rb')
         if StartFile == StopFile:
-                for numblk in numpy.arange(StartBlock,StopBlock+1):
+                for numblk in np.arange(StartBlock,StopBlock+1):
                         f.seek(int(numblk*(nHeaderSize+nBlocsize)),0)
                         nf.write(f.read(int(nHeaderSize+nBlocsize)))
-                        # nf.write(numpy.fromfile(f, dtype=numpy.uint8, count=int(nHeaderSize+nBlocsize))
-        else:
+	else:
                 if filenum == StartFile:
                         for numblk in numpy.arange(StartBlock,nListBlocs[filenum]):
                                 f.seek(int(numblk*(nHeaderSize+nBlocsize)),0)
                                 nf.write(f.read(int(nHeaderSize+nBlocsize)))
-                                # nf.write(numpy.fromfile(f, dtype=numpy.uint8, count=int(nHeaderSize+nBlocsize))
-                elif filenum == StopFile:
+		elif filenum == StopFile:
                         for numblk in numpy.arange(0,StopBlock+1):
                                 f.seek(int(numblk*(nHeaderSize+nBlocsize)),0)
                                 nf.write(f.read(int(nHeaderSize+nBlocsize)))
-                                # nf.write(numpy.fromfile(f, dtype=numpy.uint8, count=int(nHeaderSize+nBlocsize))
                 else:
                         for numblk in numpy.arange(0,nListBlocs[filenum]):
                                 f.seek(int(numblk*(nHeaderSize+nBlocsize)),0)
                                 nf.write(f.read(int(nHeaderSize+nBlocsize)))
-                                # nf.write(numpy.fromfile(f, dtype=numpy.uint8, count=int(nHeaderSize+nBlocsize))
-        f.close()
+	f.close()
 
 nf.close()
+
+
