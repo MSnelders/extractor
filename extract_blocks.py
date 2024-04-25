@@ -74,12 +74,13 @@ for file in flist:                              # .raw files starting with argv 
 
         # the header consists of N lines, each bytes_per_line long, and the last line should be "END" followed by 77 spaces.
         nHeaderSize = nHeadLine * bytes_per_line
-        
+
         # if directio is enabled, padding the header is (likely) required to
         # make nHeaderSize % direct_io_size == 0
-        if directio == 1:
-                nHeaderSize = direct_io_size * ( 1 + (nHeadLine * bytes_per_line) // direct_io_size )
-       
+        # padding not required if nHeaderSize % direct_io_size == 0
+        if directio == 1 and not (nHeaderSize % direct_io_size == 0):
+            nHeaderSize = direct_io_size * ( 1 + nHeaderSize // direct_io_size )
+        
         assert nHeaderSize == int(nHeaderSize)
         nHeaderSize = int(nHeaderSize)
         
