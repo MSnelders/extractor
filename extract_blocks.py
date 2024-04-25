@@ -27,41 +27,69 @@ idx = 0
 fname = sys.argv[2]
 
 flist = sorted(glob.glob(sys.argv[2] + "*.raw"))        # lists all files corresponding to entries
-nnumfiles =  len(flist)                                                         # number of files to process
+nnumfiles = len(flist)                                  # number of files to process
 print nnumfiles," files found in the dataset"           # print number of files
+
+# There is no good reason on why the header should contain more than 300 lines
+max_header_lines = 300
+
+# set up standard values
+direct_io_size = 512 # bytes
+bytes_per_line = 80 # bytes
+value_start_idx = 10
+
 
 for file in flist:                              # .raw files starting with argv 2
         f = open(file,'rb')                     # open as [b]inary and to [r]ead
-        f.seek(0,0)                                     # 0=bof, 1=current, 2=eof
-        currline = f.read(80)           # read 1st line
-        nHeadLine = 0                           # counter for number of lines in header
-        # read header
-        while (not 'END  ' in currline):
-                # print currline
-                if ('BLOCSIZE' in currline):
-                        subline = currline[10:]         # remove keyword from string
-                        subline.replace(' ', '')        # remove empty space
-                        nBlocsize = int(subline)        # convert string to integer
-                if ('DIRECTIO' in currline):
-                        subline = currline[10:]         # remove keyword from string
-                        subline.replace(' ', '')        # remove empty space
-                        directio = int(subline)         # convert string to integer
-                if ('CHAN_BW ' in currline):
-                        subline = currline[10:]         # remove keyword from string
-                        subline.replace(' ', '')        # remove empty space
-                        dchanbw = float(subline)                # convert string to float
-                currline = f.read(80)
-                nHeadLine = nHeadLine + 1                       # count number of lines in header
-        if directio == 1:
-                nHeaderSize = 512*(np.floor((nHeadLine*80)/512.)+1)   # size of header
-        if directio == 0:
-                nHeaderSize = nHeadLine*80      # size of header
-        f.close()
-
-        nBlocs = np.ceil(os.path.getsize(file)/(nHeaderSize + nBlocsize))    # number of blocks in current file
-        nTotalBlocs = nTotalBlocs + nBlocs      # total number of blocks
-        nListBlocs.append(nBlocs)                       # lists number of blocks per file
-        nListBlocsCumul.append(nTotalBlocs)     # lists number of cumulative blocks
+        f.seek(0,0)                             # 0=bof, 1=current, 2=eof
+        
+        nHeadLine = 0
+        for i in range(max_header_lines):
+            currline = f.read(bytes_per_line)           
+            nHeadLine += 1 # increase nHeadLine counter
+            
+            # escape when end of header has been found
+            if currline.startswith('END'):
+                    break
+                
+            # the header end should be reached before max_header_lines
+            if nHeadLine == max_header_lines - 1:
+                    sys.exit("""End of header not found within the first 300 lines.
+                             Are you sure you the files are correct and 
+                             you are calling this function with Python 2?""")
+            
+            subline = currline[value_start_idx:] # remove keyword from string
+            subline = subline.replace('"', '').replace("'", "").replace(' ', '') # clean string
+            
+            if ('BLOCSIZE' in subline):
+                    nBlocsize = int(subline) # convert string to integer
+                    
+            if ('DIRECTIO' in subline):
+                    directio = int(subline) # convert string to integer
+                    
+            if ('CHAN_BW ' in subline):
+                    dchanbw = float(subline) # convert string to float
+        
+            # the header consists of N lines, each bytes_per_line long, and the last line should be "END" followed by 77 spaces.
+            nHeaderSize = nHeadLine * bytes_per_line
+            
+            # if directio is enabled, padding the header is (likely) required to
+            # make nHeaderSize % direct_io_size == 0
+            if directio == 1:
+                    nHeaderSize = direct_io_size * np.ceil( (nHeadLine * bytes_per_line) / direct_io_size )
+          
+            f.close()
+            
+            assert nHeaderSize == int(nHeaderSize)
+            nHeaderSize = int(nHeaderSize)
+            
+            nBlocs = float(os.path.getsize(file)) / float(nHeaderSize + nBlocsize)
+            assert nBlocs == int(nBlocs)
+            nBlocs = int(nBlocs)
+            
+            nTotalBlocs = nTotalBlocs + nBlocs      # total number of blocks
+            nListBlocs.append(nBlocs)               # lists number of blocks per file
+            nListBlocsCumul.append(nTotalBlocs)     # lists number of cumulative blocks
 
 # print "# of blocs = ",nTotalBlocs
 # print "total duration = ",nTotalBlocs*nBlocsize/64./4./abs(dchanbw)/1e6," seconds"
@@ -69,6 +97,7 @@ for file in flist:                              # .raw files starting with argv 
 if float(sys.argv[3]) < 0:      # verify starting time is >0
         print "starting time must be positive and < ",nTotalBlocs*nBlocsize/64./4./abs(dchanbw)/1e6," s"
         sys.exit()
+        
 # verify stopping time is > starting time and < total duration
 if float(sys.argv[4]) <= float(sys.argv[3]) or float(sys.argv[4]) > (nTotalBlocs*nBlocsize/64./4./abs(dchanbw)/1e6):
         print "stopping time must be > ",sys.argv[3]," and < ",nTotalBlocs*nBlocsize/64./4./abs(dchanbw)/1e6," s"
@@ -77,6 +106,7 @@ if float(sys.argv[4]) <= float(sys.argv[3]) or float(sys.argv[4]) > (nTotalBlocs
 idx = 0
 while nListBlocsCumul[idx]*nBlocsize/64./4./abs(dchanbw)/1e6 <= float(sys.argv[3]):
         idx = idx + 1
+        
 StartFile = idx
 if StartFile == 0:
         StartBlock = int(np.floor(float(sys.argv[3]) * nListBlocs[StartFile] / (nListBlocs[StartFile]*nBlocsize/64./4./abs(dchanbw)/1e6)))
