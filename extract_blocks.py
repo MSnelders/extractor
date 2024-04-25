@@ -1,8 +1,12 @@
-import math, numpy, sys, os, glob, time, datetime
+#!/usr/bin/env python2
 
-def dm_delay(fl, fh, DM):
-    kdm = 4148.808 # MHz^2 / (pc cm^-3)
-    return abs(kdm * DM * (1.0 / (fl * fl) - 1 / (fh * fh)))
+# This script should be run with Python 2, and will fail with Python 3.
+
+import numpy as np
+import sys
+import os
+import glob
+
 
 
 if len(sys.argv) != 6:
@@ -49,7 +53,7 @@ for file in flist:                              # .raw files starting with argv 
                 currline = f.read(80)
                 nHeadLine = nHeadLine + 1                       # count number of lines in header
         if directio == 1:
-                nHeaderSize = 512*(math.floor((nHeadLine*80)/512.)+1)   # size of header
+                nHeaderSize = 512*(np.floor((nHeadLine*80)/512.)+1)   # size of header
         if directio == 0:
                 nHeaderSize = nHeadLine*80      # size of header
         f.close()
@@ -75,20 +79,20 @@ while nListBlocsCumul[idx]*nBlocsize/64./4./abs(dchanbw)/1e6 <= float(sys.argv[3
         idx = idx + 1
 StartFile = idx
 if StartFile == 0:
-        StartBlock = int(math.floor(float(sys.argv[3]) * nListBlocs[StartFile] / (nListBlocs[StartFile]*nBlocsize/64./4./abs(dchanbw)/1e6)))
+        StartBlock = int(np.floor(float(sys.argv[3]) * nListBlocs[StartFile] / (nListBlocs[StartFile]*nBlocsize/64./4./abs(dchanbw)/1e6)))
 else:
         timefile = float(sys.argv[3]) - nListBlocsCumul[idx-1]*nBlocsize/64./4./abs(dchanbw)/1e6
-        StartBlock = int(math.floor(timefile * nListBlocs[StartFile] / (nListBlocs[StartFile]*nBlocsize/64./4./abs(dchanbw)/1e6)))
+        StartBlock = int(np.floor(timefile * nListBlocs[StartFile] / (nListBlocs[StartFile]*nBlocsize/64./4./abs(dchanbw)/1e6)))
 
 idx = 0
 while nListBlocsCumul[idx]*nBlocsize/64./4./abs(dchanbw)/1e6 <= float(sys.argv[4]):
         idx = idx + 1
 StopFile = idx
 if StopFile == 0:
-        StopBlock = int(math.floor(float(sys.argv[4]) * nListBlocs[StopFile] / (nListBlocs[StopFile]*nBlocsize/64./4./abs(dchanbw)/1e6)))
+        StopBlock = int(np.floor(float(sys.argv[4]) * nListBlocs[StopFile] / (nListBlocs[StopFile]*nBlocsize/64./4./abs(dchanbw)/1e6)))
 else:
         timefile = float(sys.argv[4]) - nListBlocsCumul[idx-1]*nBlocsize/64./4./abs(dchanbw)/1e6
-        StopBlock = int(math.floor(timefile * nListBlocs[StopFile] / (nListBlocs[StopFile]*nBlocsize/64./4./abs(dchanbw)/1e6)))
+        StopBlock = int(np.floor(timefile * nListBlocs[StopFile] / (nListBlocs[StopFile]*nBlocsize/64./4./abs(dchanbw)/1e6)))
 
 print "copy starts with file #",StartFile," - block #",StartBlock
 print "copy stops with file #",StopFile," - block #",StopBlock
