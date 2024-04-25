@@ -38,7 +38,6 @@ direct_io_size = 512 # bytes
 bytes_per_line = 80 # bytes
 value_start_idx = 10
 
-
 for file in flist:                              # .raw files starting with argv 2
         f = open(file,'rb')                     # open as [b]inary and to [r]ead
         f.seek(0,0)                             # 0=bof, 1=current, 2=eof
@@ -47,7 +46,7 @@ for file in flist:                              # .raw files starting with argv 
         for i in range(max_header_lines):
                 currline = f.read(bytes_per_line)           
                 nHeadLine += 1 # increase nHeadLine counter
-                
+
                 # escape when end of header has been found
                 if currline.startswith('END'):
                         break
@@ -60,26 +59,27 @@ for file in flist:                              # .raw files starting with argv 
                 
                 subline = currline[value_start_idx:] # remove keyword from string
                 subline = subline.replace('"', '').replace("'", "").replace(' ', '') # clean string
-                
-                if ('BLOCSIZE' in subline):
+
+                if ('BLOCSIZE' in currline):
                         nBlocsize = int(subline) # convert string to integer
                         
-                if ('DIRECTIO' in subline):
+                if ('DIRECTIO' in currline):
                         directio = int(subline) # convert string to integer
                         
-                if ('CHAN_BW ' in subline):
+                if ('CHAN_BW ' in currline):
                         dchanbw = float(subline) # convert string to float
-        
+
+
+        f.close()
+
         # the header consists of N lines, each bytes_per_line long, and the last line should be "END" followed by 77 spaces.
         nHeaderSize = nHeadLine * bytes_per_line
         
         # if directio is enabled, padding the header is (likely) required to
         # make nHeaderSize % direct_io_size == 0
         if directio == 1:
-                nHeaderSize = direct_io_size * np.ceil( (nHeadLine * bytes_per_line) / direct_io_size )
-          
-        f.close()
-        
+                nHeaderSize = direct_io_size * ( 1 + (nHeadLine * bytes_per_line) // direct_io_size )
+       
         assert nHeaderSize == int(nHeaderSize)
         nHeaderSize = int(nHeaderSize)
         
@@ -127,10 +127,6 @@ else:
 print "copy starts with file #",StartFile," - block #",StartBlock
 print "copy stops with file #",StopFile," - block #",StopBlock
 
-
-ts = time.time()
-st = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d_%H_%M_%S')
-
 newfilename = sys.argv[5]+fname+"_"+sys.argv[3]+"_"+sys.argv[4]+".raw"
 print "writing data to "+newfilename
 nf = open(newfilename,'wb')     # open as [b]inary and to [w]rite
@@ -143,15 +139,15 @@ for filenum in range(StartFile,StopFile+1):
                         nf.write(f.read(int(nHeaderSize+nBlocsize)))
 	else:
                 if filenum == StartFile:
-                        for numblk in numpy.arange(StartBlock,nListBlocs[filenum]):
+                        for numblk in np.arange(StartBlock,nListBlocs[filenum]):
                                 f.seek(int(numblk*(nHeaderSize+nBlocsize)),0)
                                 nf.write(f.read(int(nHeaderSize+nBlocsize)))
 		elif filenum == StopFile:
-                        for numblk in numpy.arange(0,StopBlock+1):
+                        for numblk in np.arange(0,StopBlock+1):
                                 f.seek(int(numblk*(nHeaderSize+nBlocsize)),0)
                                 nf.write(f.read(int(nHeaderSize+nBlocsize)))
                 else:
-                        for numblk in numpy.arange(0,nListBlocs[filenum]):
+                        for numblk in np.arange(0,nListBlocs[filenum]):
                                 f.seek(int(numblk*(nHeaderSize+nBlocsize)),0)
                                 nf.write(f.read(int(nHeaderSize+nBlocsize)))
 	f.close()
